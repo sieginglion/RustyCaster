@@ -11,5 +11,3 @@ image = "0.22.1"
 
 [profile.release]
 opt-level = 3
-# lto = true
-# overflow-checks = false

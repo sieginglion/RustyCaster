@@ -35,9 +35,9 @@ fn cast(O: &Vec<[[f32; 3]; 3]>, R_0: [f32; 3], D: [f32; 3]) -> f32 {
     for V in O {
         let E_2 = subtract(V[2], V[0]);
         let E_1 = subtract(V[1], V[0]);
+        let T = subtract(R_0, V[0]);
         let P = cross(D, E_2);
         let a = dot(P, E_1);
-        let T = subtract(R_0, V[0]);
         let u = dot(P, T) / a;
         if u < 0. || u > 1. {
             continue;
