@@ -257,6 +257,7 @@ name = "ray_caster"
 version = "0.1.0"
 dependencies = [
  "image 0.22.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rayon 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
