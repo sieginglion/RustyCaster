@@ -19,39 +19,47 @@ fn load_object(name: &str) -> Vec<[[f32; 3]; 3]> {
     return object;
 }
 
-fn subtract(x: [f32; 3], y: [f32; 3]) -> [f32; 3] { 
-    return [x[0] - y[0], x[1] - y[1], x[2] - y[2]];
+fn subtract(x: [f32; 3], y: [f32; 3]) -> [f32; 3] {
+    return [x[0] - y[0], x[1] - y[1], x[2] - y[2]]
 }
 
 fn cross(x: [f32; 3], y: [f32; 3]) -> [f32; 3] {
-    return [x[1] * y[2] - x[2] * y[1], x[2] * y[0] - x[0] * y[2], x[0] * y[1] - x[1] * y[0]];
+    return [x[1] * y[2] - x[2] * y[1], x[2] * y[0] - x[0] * y[2], x[0] * y[1] - x[1] * y[0]]
 }
 
 fn dot(x: [f32; 3], y: [f32; 3]) -> f32 {
-    return x[0] * y[0] + x[1] * y[1] + x[2] * y[2];
+    return x[0] * y[0] + x[1] * y[1] + x[2] * y[2]
+}
+
+fn intersect(O: [f32; 3], D: [f32; 3], V: &[[f32; 3]; 3]) -> f32 {
+    let E_1 = subtract(V[1], V[0]);
+    let E_2 = subtract(V[2], V[0]);
+    let P = cross(D, E_2);
+    let d = dot(E_1, P);
+    if d.abs() < 0.000001 {
+        return 0.
+    }
+    let T = subtract(O, V[0]);
+    let u = dot(P, T) / d;
+    if u < 0. || u > 1. {
+        return 0.
+    }
+    let Q = cross(T, E_1);
+    let v = dot(D, Q) / d;
+    if v < 0. || u + v > 1. {
+        return 0.
+    }
+    return dot(E_2, Q) / d
 }
 
 fn cast(O: &Vec<[[f32; 3]; 3]>, R_0: [f32; 3], D: [f32; 3]) -> f32 {
     for V in O {
-        let E_2 = subtract(V[2], V[0]);
-        let E_1 = subtract(V[1], V[0]);
-        let T = subtract(R_0, V[0]);
-        let P = cross(D, E_2);
-        let a = dot(P, E_1);
-        let u = dot(P, T) / a;
-        if u < 0. || u > 1. {
-            continue;
-        }
-        let Q = cross(T, E_1);
-        let v = dot(Q, D) / a;
-        if v >= 0. && u + v <= 1. {
-            let t = dot(Q, E_2) / a;
-            if t > 0. {
-                return t;
-            }
+        let t = intersect(R_0, D, V);
+        if t > 0. {
+            return t
         }
     }
-    return 1000.;
+    return 1000.
 }
 
 fn save_to_image(matrix: Vec<Vec<u8>>) {
@@ -96,11 +104,11 @@ fn main() {
     
     let timer = time::Instant::now();
     object.sort_by_key(|x| sum(square(subtract(x[0], camera))) as i32);
-    for i in 0..height {
-        for j in 0..width {
+    for (i, x) in screen.iter_mut().enumerate() {
+        for (j, y) in x.iter_mut().enumerate() {
             let ray = [-1., offset_x + pixel * (j as f32), offset_y - pixel * (i as f32)];
             let t = cast(&object, camera, ray);
-            screen[i][j] = clip(255. - decay * t) as u8;
+            *y = clip(255. - decay * t) as u8;
         }
     }
     println!("{:?}", timer.elapsed());
