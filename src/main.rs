@@ -1,6 +1,8 @@
+mod threadpool;
+
 use std::fs;
 use std::time;
-use rayon::prelude::*;
+use std::sync::Arc;
 
 fn load_object(name: &str) -> Vec<[[f32; 3]; 3]> {
     let file = fs::read_to_string(name).unwrap();
@@ -92,8 +94,8 @@ fn clip(x: f32) -> f32 {
 
 fn main() {
     let FOV: f32 = 60. * 0.0174;
-    let width = 1920;
-    let height = 1080;
+    let width = 640;
+    let height = 480;
     let mut object = load_object("teapot.obj");
     let camera = [8., 0., 1.5];
     let decay: f32 = 20.;
@@ -105,14 +107,24 @@ fn main() {
     
     let timer = time::Instant::now();
     object.sort_by_key(|x| sum(square(subtract(x[0], camera))) as i32);
-    for (i, x) in screen.iter_mut().enumerate() {
-        x.par_iter_mut().enumerate().for_each(|(j, y)| {
-            let ray = [-1., offset_x + pixel * (j as f32), offset_y - pixel * (i as f32)];
-            let t = cast(&object, camera, ray);
-            *y = clip(255. - decay * t) as u8;
-        })
-    }
-    println!("{:?}", timer.elapsed());
+    let object = Arc::new(object);
 
+    let pool = threadpool::ThreadPool::new(4);
+    for i in 0..height {
+        for j in 0..width {
+            let object = object.clone();
+            pool.assign(move || {
+                let ray = [-1., offset_x + pixel * (j as f32), offset_y - pixel * (i as f32)];
+                let t = cast(&object, camera, ray);
+                return (i, j, clip(255. - decay * t) as u8);
+            });
+        }
+    }
+    let results = pool.join();
+    for (i, j, k) in results {
+        screen[i][j] = k;
+    }
+    
+    println!("{:?}", timer.elapsed());
     save_to_image(screen);
 }
